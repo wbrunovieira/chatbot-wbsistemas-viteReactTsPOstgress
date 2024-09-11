@@ -1,13 +1,20 @@
-FROM node:18-alpine
+FROM node:18
 
 WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm install && npm run dev
+RUN rm -rf node_modules package-lock.json
+
+RUN npm install
 
 COPY . .
 
+RUN npm run build
+
+RUN npm install -g serve
+
 EXPOSE 5173
 
-CMD ["npx", "vite"]
+CMD ["serve", "-s", "dist", "-l", "5173"]
+
