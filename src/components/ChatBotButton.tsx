@@ -1,61 +1,157 @@
-// ChatBotButton.tsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
-import { FiMessageCircle } from "react-icons/fi"; // Usando ícone de chat
+import { FiMessageCircle } from "react-icons/fi";
 
 const ChatBotButton: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const [messages, setMessages] = useState<string[]>([]);
+    const [inputValue, setInputValue] = useState("");
+    const [isTyping, setIsTyping] = useState(false);
+    const [newMessageBadge, setNewMessageBadge] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const modalRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // useGSAP to manage animations
     useGSAP(
         () => {
             if (isOpen) {
                 gsap.fromTo(
                     modalRef.current,
-                    { opacity: 0, y: 50 },
-                    { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }
+                    { opacity: 0, scaleY: 0.5, scaleX: 0.7, y: 200 },
+                    {
+                        opacity: 1,
+                        scaleY: 1,
+                        scaleX: 1,
+                        y: 0,
+                        duration: 2,
+                        ease: "elastic.out(1, 0.5)",
+                    }
                 );
+                setNewMessageBadge(false);
             } else {
                 gsap.to(modalRef.current, {
                     opacity: 0,
-                    y: 50,
-                    duration: 0.5,
-                    ease: "power3.in",
+                    scaleY: 0.5,
+                    scaleX: 0.7,
+                    y: 200,
+                    duration: 0.8,
+                    ease: "elastic.in(1, 0.5)",
                 });
             }
         },
         { scope: containerRef }
     );
 
+    useEffect(() => {
+        const handleEscKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape" && isOpen) {
+                setIsOpen(false);
+            }
+        };
+        window.addEventListener("keydown", handleEscKey);
+        return () => {
+            window.removeEventListener("keydown", handleEscKey);
+        };
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen) {
+            gsap.fromTo(
+                modalRef.current,
+                { opacity: 0, scaleY: 0.5, scaleX: 0.7, y: 200 },
+                {
+                    opacity: 1,
+                    scaleY: 1,
+                    scaleX: 1,
+                    y: 0,
+                    duration: 1,
+                    ease: "elastic.out(1, 0.5)",
+                }
+            );
+        } else {
+            gsap.to(modalRef.current, {
+                opacity: 0,
+                scaleY: 0.5,
+                scaleX: 0.7,
+                y: 200,
+                duration: 0.8,
+                ease: "elastic.in(1, 0.5)",
+            });
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    const sendMessage = (text?: string) => {
+        const messageToSend = text ? text : inputValue;
+        if (messageToSend.trim()) {
+            setMessages((prevMessages) => [...prevMessages, messageToSend]);
+            setInputValue("");
+
+            setIsTyping(true);
+            setTimeout(() => {
+                setIsTyping(false);
+                setMessages((prevMessages) => [
+                    ...prevMessages,
+                    "Bot: Esta é uma resposta automática!",
+                ]);
+                if (!isOpen) {
+                    setNewMessageBadge(true);
+                }
+            }, 1000);
+        }
+    };
+
+    const scrollToBottom = () => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            sendMessage();
+        } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            setInputValue((prevValue) => prevValue + "\n");
+        }
+    };
+
     return (
         <div ref={containerRef}>
-            {/* Botão flutuante com ícone de chatbot */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="fixed bottom-6 right-6 bg-custom-purple text-white p-5 rounded-full shadow-xl transform transition-all duration-300 hover:scale-110 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-custom-purple focus:ring-opacity-50"
+                className="fixed bottom-6 right-6 z-50 bg-custom-purple text-white p-5 rounded-full shadow-xl transform transition-all duration-300 hover:scale-110 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-custom-purple focus:ring-opacity-50"
+                style={{
+                    position: "fixed",
+                    bottom: "1.5rem",
+                    right: "1.5rem",
+                    zIndex: 50,
+                }}
                 aria-label="Abrir Chatbot"
             >
-                <FiMessageCircle className="h-7 w-7" /> {/* Ícone de Chat */}
+                <FiMessageCircle className="h-7 w-7" />
+                {newMessageBadge && (
+                    <span className="absolute top-0 right-0 h-3 w-3 bg-red-500 rounded-full"></span>
+                )}
             </button>
 
-            {/* Modal de conversa com animação GSAP */}
             {isOpen && (
-                <div className="fixed inset-0 flex items-end justify-end p-6">
+                <div className="fixed top-0 right-4 flex items-end justify-end p-2 z-40">
                     <div
                         ref={modalRef}
                         className="bg-white rounded-lg shadow-2xl w-full max-w-md transform transition-transform"
+                        role="dialog"
+                        aria-live="polite"
                     >
-                        {/* Cabeçalho do modal com fundo tech preenchido */}
                         <div className="relative flex justify-between items-center p-4 bg-gradient-to-r from-custom-purple to-primary text-white rounded-t-lg overflow-hidden">
-                            {/* Título */}
                             <h2 className="text-xl font-semibold z-10">
                                 Chatbot
                             </h2>
 
-                            {/* Botão de Fechar */}
                             <button
                                 onClick={() => setIsOpen(false)}
                                 className="focus:outline-none hover:text-gray-300 transition-colors z-10"
@@ -77,11 +173,10 @@ const ChatBotButton: React.FC = () => {
                                 </svg>
                             </button>
 
-                            {/* SVG de fundo - dots mais espalhados */}
                             <svg
                                 className="absolute inset-0 h-full w-full opacity-20"
                                 xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 400 100" // Tamanho ajustado para preencher o header
+                                viewBox="0 0 400 100"
                             >
                                 <defs>
                                     <pattern
@@ -124,16 +219,95 @@ const ChatBotButton: React.FC = () => {
                             </svg>
                         </div>
 
-                        {/* Corpo do modal */}
                         <div className="p-5 text-gray-700">
-                            <p className="mb-4">Como posso ajudar você hoje?</p>
-                            <input
-                                type="text"
+                            <div className="mb-4 max-h-60 overflow-y-auto">
+                                {messages.map((msg, index) => {
+                                    const isUserMessage =
+                                        msg.startsWith("Você");
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`mb-2 p-3 max-w-[80%] rounded-lg transition-transform transform ${
+                                                isUserMessage
+                                                    ? "bg-custom-purple text-white self-end ml-auto"
+                                                    : "bg-gray-200 text-black self-start mr-auto"
+                                            }`}
+                                            style={{
+                                                textAlign: isUserMessage
+                                                    ? "right"
+                                                    : "left",
+                                                boxShadow: isUserMessage
+                                                    ? "0 2px 10px rgba(0, 0, 0, 0.2)"
+                                                    : "0 2px 10px rgba(0, 0, 0, 0.05)",
+                                            }}
+                                        >
+                                            {isUserMessage ? (
+                                                <span className="font-bold">
+                                                    Você:
+                                                </span>
+                                            ) : (
+                                                <span className="font-bold">
+                                                    Bot:
+                                                </span>
+                                            )}{" "}
+                                            {msg
+                                                .replace("Você: ", "")
+                                                .replace("Bot: ", "")}
+                                        </div>
+                                    );
+                                })}
+
+                                {isTyping && (
+                                    <div className="mb-2 p-2 max-w-[80%] bg-gray-200 text-black self-start mr-auto rounded-lg">
+                                        Bot está digitando...
+                                    </div>
+                                )}
+
+                                <div ref={messagesEndRef} />
+                            </div>
+
+                            <div className="flex space-x-2 mb-2">
+                                <button
+                                    onClick={() =>
+                                        sendMessage("Fale com um humano")
+                                    }
+                                    className="bg-secondary text-black py-1 px-2 text-[0.7rem] rounded-lg shadow-sm hover:bg-gray-300"
+                                >
+                                    Fale com um humano
+                                </button>
+                                <button
+                                    onClick={() => sendMessage("Ajuda")}
+                                    className="bg-secondary text-black py-1 px-4 rounded-lg text-[0.7rem] shadow-sm hover:bg-gray-300"
+                                >
+                                    Ajuda
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        sendMessage("Iniciar de novo")
+                                    }
+                                    className="bg-secondary text-black py-1 px-4 rounded-lg text-[0.7rem] shadow-sm hover:bg-gray-300"
+                                >
+                                    Iniciar de novo
+                                </button>
+                            </div>
+
+                            <textarea
                                 placeholder="Digite sua mensagem..."
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-custom-purple focus:ring-2 focus:ring-custom-purple transition-all duration-200"
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={handleKeyPress}
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-custom-purple focus:ring-2 focus:ring-custom-purple transition-all duration-200 resize-none"
+                                rows={3}
                             />
+
                             <button
-                                className="mt-4 w-full bg-custom-purple text-white py-2 px-4 rounded-lg shadow-md hover:bg-primary focus:outline-none focus:ring-4 focus:ring-primary focus:ring-opacity-50 transition-all duration-300"
+                                onClick={() => sendMessage()}
+                                disabled={!inputValue.trim()}
+                                className={`mt-4 w-full py-2 px-4 rounded-lg shadow-md transition-all duration-300 ${
+                                    inputValue.trim()
+                                        ? "bg-custom-purple text-white hover:bg-primary focus:outline-none focus:ring-4 focus:ring-primary focus:ring-opacity-50"
+                                        : "bg-gray-400 text-gray-200 cursor-not-allowed"
+                                }`}
                                 aria-label="Enviar mensagem"
                             >
                                 Enviar
