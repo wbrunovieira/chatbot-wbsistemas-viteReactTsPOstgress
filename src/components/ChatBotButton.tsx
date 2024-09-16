@@ -3,15 +3,23 @@ import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { FiMessageCircle } from "react-icons/fi";
 
+interface Message {
+    text: string;
+    isUser: boolean;
+}
+
 const ChatBotButton: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState<string[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [isAnimating, setIsAnimating] = useState(false);
     const [inputValue, setInputValue] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [newMessageBadge, setNewMessageBadge] = useState(false);
+
     const containerRef = useRef<HTMLDivElement>(null);
     const modalRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
 
     useGSAP(
         () => {
@@ -40,8 +48,17 @@ const ChatBotButton: React.FC = () => {
                 });
             }
         },
+
         { scope: containerRef }
     );
+
+    useEffect(() => {
+        if (isOpen) {
+            openAnimation();
+            setNewMessageBadge(false);
+        } else if (!isAnimating && modalRef.current) {
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         const handleEscKey = (event: KeyboardEvent) => {
@@ -56,39 +73,33 @@ const ChatBotButton: React.FC = () => {
     }, [isOpen]);
 
     useEffect(() => {
-        if (isOpen) {
-            gsap.fromTo(
-                modalRef.current,
-                { opacity: 0, scaleY: 0.5, scaleX: 0.7, y: 200 },
-                {
-                    opacity: 1,
-                    scaleY: 1,
-                    scaleX: 1,
-                    y: 0,
-                    duration: 1,
-                    ease: "elastic.out(1, 0.5)",
-                }
-            );
-        } else {
-            gsap.to(modalRef.current, {
-                opacity: 0,
-                scaleY: 0.5,
-                scaleX: 0.7,
-                y: 200,
-                duration: 0.8,
-                ease: "elastic.in(1, 0.5)",
-            });
-        }
-    }, [isOpen]);
-
-    useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    const openAnimation = () => {
+        gsap.fromTo(
+            modalRef.current,
+            { opacity: 0, scaleY: 0.5, scaleX: 0.7, y: 200 },
+            {
+                opacity: 1,
+                scaleY: 1,
+                scaleX: 1,
+                y: 0,
+                duration: 1,
+                ease: "elastic.out(1, 0.5)",
+                onStart: () => setIsAnimating(true),
+                onComplete: () => setIsAnimating(false),
+            }
+        );
+    };
 
     const sendMessage = (text?: string) => {
         const messageToSend = text ? text : inputValue;
         if (messageToSend.trim()) {
-            setMessages((prevMessages) => [...prevMessages, messageToSend]);
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { text: messageToSend, isUser: true },
+            ]);
             setInputValue("");
 
             setIsTyping(true);
@@ -96,7 +107,7 @@ const ChatBotButton: React.FC = () => {
                 setIsTyping(false);
                 setMessages((prevMessages) => [
                     ...prevMessages,
-                    "Bot: Esta é uma resposta automática!",
+                    { text: "Esta é uma resposta automática!", isUser: false },
                 ]);
                 if (!isOpen) {
                     setNewMessageBadge(true);
@@ -123,6 +134,7 @@ const ChatBotButton: React.FC = () => {
     return (
         <div ref={containerRef}>
             <button
+                ref={buttonRef}
                 onClick={() => setIsOpen(!isOpen)}
                 className="fixed bottom-6 right-6 z-50 bg-custom-purple text-white p-5 rounded-full shadow-xl transform transition-all duration-300 hover:scale-110 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-custom-purple focus:ring-opacity-50"
                 style={{
@@ -221,41 +233,35 @@ const ChatBotButton: React.FC = () => {
 
                         <div className="p-5 text-gray-700">
                             <div className="mb-4 max-h-60 overflow-y-auto">
-                                {messages.map((msg, index) => {
-                                    const isUserMessage =
-                                        msg.startsWith("Você");
-                                    return (
-                                        <div
-                                            key={index}
-                                            className={`mb-2 p-3 max-w-[80%] rounded-lg transition-transform transform ${
-                                                isUserMessage
-                                                    ? "bg-custom-purple text-white self-end ml-auto"
-                                                    : "bg-gray-200 text-black self-start mr-auto"
-                                            }`}
-                                            style={{
-                                                textAlign: isUserMessage
-                                                    ? "right"
-                                                    : "left",
-                                                boxShadow: isUserMessage
-                                                    ? "0 2px 10px rgba(0, 0, 0, 0.2)"
-                                                    : "0 2px 10px rgba(0, 0, 0, 0.05)",
-                                            }}
-                                        >
-                                            {isUserMessage ? (
-                                                <span className="font-bold">
-                                                    Você:
-                                                </span>
-                                            ) : (
-                                                <span className="font-bold">
-                                                    Bot:
-                                                </span>
-                                            )}{" "}
-                                            {msg
-                                                .replace("Você: ", "")
-                                                .replace("Bot: ", "")}
-                                        </div>
-                                    );
-                                })}
+                                {messages.map((msg, index) => (
+                                    <div
+                                        key={index}
+                                        className={`mb-2 p-3 max-w-[80%] rounded-lg transition-transform transform ${
+                                            msg.isUser
+                                                ? "bg-custom-purple text-white self-end ml-auto"
+                                                : "bg-gray-200 text-black self-start mr-auto"
+                                        }`}
+                                        style={{
+                                            textAlign: msg.isUser
+                                                ? "right"
+                                                : "left",
+                                            boxShadow: msg.isUser
+                                                ? "0 2px 10px rgba(0, 0, 0, 0.2)"
+                                                : "0 2px 10px rgba(0, 0, 0, 0.05)",
+                                        }}
+                                    >
+                                        {msg.isUser ? (
+                                            <span className="font-bold">
+                                                Você:
+                                            </span>
+                                        ) : (
+                                            <span className="font-bold">
+                                                Bot:
+                                            </span>
+                                        )}{" "}
+                                        {msg.text}
+                                    </div>
+                                ))}
 
                                 {isTyping && (
                                     <div className="mb-2 p-2 max-w-[80%] bg-gray-200 text-black self-start mr-auto rounded-lg">
