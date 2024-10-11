@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { FiMessageCircle } from "react-icons/fi";
+import { io, Socket } from "socket.io-client";
 
 interface Message {
     text: string;
@@ -15,6 +16,8 @@ const ChatBotButton: React.FC = () => {
     const [inputValue, setInputValue] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [newMessageBadge, setNewMessageBadge] = useState(false);
+
+    const socketRef = useRef<Socket | null>(null);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const modalRef = useRef<HTMLDivElement>(null);
@@ -51,6 +54,30 @@ const ChatBotButton: React.FC = () => {
 
         { scope: containerRef }
     );
+
+    useEffect(() => {
+        
+        try {
+            socketRef.current = io("http://localhost:3000");
+
+           
+            socketRef.current.on("messageToClient", (message) => {
+                console.log("Received message from server:", message);
+                setMessages((prevMessages) => [
+                    ...prevMessages,
+                    { text: message.text, isUser: false },
+                ]);
+                setIsTyping(false);
+            });
+        } catch (error) {
+            console.error("Error initializing WebSocket connection:", error);
+        }
+
+        return () => {
+           
+            socketRef.current?.disconnect();
+        };
+    }, []);
 
     useEffect(() => {
         if (isOpen) {
@@ -103,16 +130,15 @@ const ChatBotButton: React.FC = () => {
             setInputValue("");
 
             setIsTyping(true);
-            setTimeout(() => {
-                setIsTyping(false);
-                setMessages((prevMessages) => [
-                    ...prevMessages,
-                    { text: "Esta é uma resposta automática!", isUser: false },
-                ]);
-                if (!isOpen) {
-                    setNewMessageBadge(true);
-                }
-            }, 1000);
+
+            try {
+                socketRef.current?.emit("messageToServer", {
+                    text: messageToSend,
+                    user: "User",
+                });
+            } catch (error) {
+                console.error("Error sending message to server:", error);
+            }
         }
     };
 

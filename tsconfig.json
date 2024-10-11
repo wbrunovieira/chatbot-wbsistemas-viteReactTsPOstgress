@@ -20,6 +20,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src", "../chatbot-wbsistemasNodeTSPostgress/src/chat.gateway.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
