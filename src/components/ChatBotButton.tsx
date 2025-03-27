@@ -9,12 +9,21 @@ interface Message {
   isUser: boolean;
 }
 
+const typingMessages = [
+  'Está digitando...',
+  'Pensando...',
+  'Analisando sua mensagem...',
+];
+
 const ChatBotButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [typingText, setTypingText] = useState(
+    typingMessages[0]
+  );
   const [newMessageBadge, setNewMessageBadge] =
     useState(false);
 
@@ -84,6 +93,21 @@ const ChatBotButton: React.FC = () => {
   // }, []);
 
   useEffect(() => {
+    if (isTyping) {
+      const interval = setInterval(() => {
+        setTypingText(prev => {
+          const currentIndex = typingMessages.indexOf(prev);
+          const nextIndex =
+            (currentIndex + 1) % typingMessages.length;
+          return typingMessages[nextIndex];
+        });
+      }, 1500);
+
+      return () => clearInterval(interval);
+    }
+  }, [isTyping]);
+
+  useEffect(() => {
     if (isOpen) {
       openAnimation();
       setNewMessageBadge(false);
@@ -144,7 +168,7 @@ const ChatBotButton: React.FC = () => {
             },
             body: JSON.stringify({
               message: messageToSend,
-              user_id: 'user123', // você pode gerar dinamicamente um ID por sessão
+              user_id: 'user123',
             }),
           }
         );
@@ -337,7 +361,7 @@ const ChatBotButton: React.FC = () => {
 
                 {isTyping && (
                   <div className="mb-2 p-2 max-w-[80%] bg-gray-200 text-black self-start mr-auto rounded-lg">
-                    Bot está digitando...
+                    {typingText}
                   </div>
                 )}
 
@@ -347,25 +371,27 @@ const ChatBotButton: React.FC = () => {
               <div className="flex space-x-2 mb-2">
                 <button
                   onClick={() =>
-                    sendMessage('Fale com um humano')
+                    sendMessage('Falar com um especialista')
                   }
-                  className="bg-secondary text-black py-1 px-2 text-[0.7rem] rounded-lg shadow-sm hover:bg-gray-300"
+                  className="bg-secondary text-black py-1 px-2 text-[0.7rem] rounded-lg shadow-sm hover:bg-gray-300 whitespace-nowrap"
                 >
-                  Fale com um humano
-                </button>
-                <button
-                  onClick={() => sendMessage('Ajuda')}
-                  className="bg-secondary text-black py-1 px-4 rounded-lg text-[0.7rem] shadow-sm hover:bg-gray-300"
-                >
-                  Ajuda
+                  👉 Falar com um especialista
                 </button>
                 <button
                   onClick={() =>
-                    sendMessage('Iniciar de novo')
+                    sendMessage('Solicitar orçamento')
                   }
-                  className="bg-secondary text-black py-1 px-4 rounded-lg text-[0.7rem] shadow-sm hover:bg-gray-300"
+                  className="bg-secondary text-black py-1 px-4 rounded-lg text-[0.7rem] shadow-sm hover:bg-gray-300 whitespace-nowrap"
                 >
-                  Iniciar de novo
+                  💰 Solicitar orçamento
+                </button>
+                <button
+                  onClick={() =>
+                    sendMessage('Ver serviços')
+                  }
+                  className="bg-secondary text-black py-1 px-4 rounded-lg text-[0.7rem] shadow-sm hover:bg-gray-300 whitespace-nowrap"
+                >
+                  🛠️ Ver serviços
                 </button>
               </div>
 
