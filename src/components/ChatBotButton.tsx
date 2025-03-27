@@ -158,6 +158,16 @@ const ChatBotButton: React.FC = () => {
       setInputValue('');
       setIsTyping(true);
 
+      const waitingTimeout = setTimeout(() => {
+        setMessages(prevMessages => [
+          ...prevMessages,
+          {
+            text: '⏳ Ainda estou processando sua resposta... Só mais um instante! 😊',
+            isUser: false,
+          },
+        ]);
+      }, 5000);
+
       try {
         const response = await fetch(
           'http://192.168.0.9:8000/chat',
@@ -173,6 +183,8 @@ const ChatBotButton: React.FC = () => {
           }
         );
 
+        clearTimeout(waitingTimeout);
+
         const data = await response.json();
 
         const reply =
@@ -185,6 +197,7 @@ const ChatBotButton: React.FC = () => {
           { text: reply, isUser: false },
         ]);
       } catch (error) {
+        clearTimeout(waitingTimeout);
         console.error(
           'Erro ao enviar mensagem para o servidor:',
           error
